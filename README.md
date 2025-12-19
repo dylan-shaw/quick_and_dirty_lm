@@ -21,8 +21,9 @@ pip3 install -r requirements.txt
 ```
 
 If you'd like to verify that you've got a working environment,
-you can run the smoke test:
+you can run the pretraining function on the test data, using a
+small model that fits in most GPUs.
 
 ```
-./quick_and_dirty_lm.py smoke-test-gpt
+./quick_and_dirty_lm.py pretrain
 ```

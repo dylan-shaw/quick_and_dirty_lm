@@ -259,40 +259,12 @@ def _pretrain(args):
              heads=args.heads,
              embedding_dim=args.embedding_dim)
 
-def _smoke_test_gpt(args):
-
-    print('smoke testing gpt model')
-    model = GPTModel(vocab_size=10,
-                     embedding=16,
-                     context_length=12,
-                     heads=2,
-                     dropout=0.1,
-                     qkv_bias=False,
-                     layers=2)
-
-    print('testing without batch dimension')
-    x = torch.tensor([
-        1, 2, 3, 4,
-        5, 6, 7, 8,
-        9, 8, 7, 6
-    ]).long()
-    y: Tensor = model(x)
-    print('  done')
-    print('testing with batch dimension')
-    x_batch = torch.stack((x, x), dim=0)
-    y = model(x_batch)
-    print('  done')
-    print('seems good to go')
-
 if __name__ == '__main__':
 
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.set_defaults(func=lambda args: parser.print_help())
     subparsers = parser.add_subparsers()
-
-    smoke_test_gpt = subparsers.add_parser('smoke-test-gpt')
-    smoke_test_gpt.set_defaults(func=_smoke_test_gpt)
 
     pretrain_parser = subparsers.add_parser('pretrain')
     pretrain_parser.add_argument('--training-directory', type=str, default='test_data/training', help='The directory containing the training data.')
