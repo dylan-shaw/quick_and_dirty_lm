@@ -1,0 +1,1 @@
+in the lab lived a model that dreamed of bread. nobody trained it to do that, it just happened after too many examples of sandwiches. when asked a question it answered with crumbs of wisdom and a recipe. the engineers nodded, impressed, and added more bread data until the room felt like a bakery with opinions.
