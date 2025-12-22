@@ -5,22 +5,36 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Pretrain",
+            "name": "tests/pretrain",
             "type": "debugpy",
             "request": "launch",
-            "module": "quick_and_dirty_lm",
+            "module": "tests.pretrain",
             "args": [
                 "pretrain"
             ]
         },
         {
-            "name": "Smoke Test GPT",
+            "name": "examples/gpt/train_tokenizer",
             "type": "debugpy",
             "request": "launch",
-            "module": "quick_and_dirty_lm",
-            "args": [
-                "smoke-test-gpt"
-            ]
+            "module": "examples.gpt.train_tokenizer",
+            "env": {
+                "HF_TOKEN": "${input:hf_token}"
+            }
+        },
+        {
+            "name": "examples/gpt/pretrain",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "examples.gpt.pretrain"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "hf_token",
+            "description": "The optional token for downloading content from hugging face",
+            "type": "promptString",
+            "default": ""
         }
     ]
 }

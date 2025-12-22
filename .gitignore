@@ -1,3 +1,6 @@
 .venv
 __pycache__
-data
+examples/gpt/corpus.txt
+examples/gpt/tokenizer.*
+examples/gpt/*.bin
+*.pt
