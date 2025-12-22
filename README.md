@@ -20,10 +20,23 @@ python3 -m venv .venv
 pip3 install -r requirements.txt
 ```
 
-If you'd like to verify that you've got a working environment,
-you can run the pretraining function on the test data, using a
-small model that fits in most GPUs.
+Once that's done, you can run the example!
+The first part of the example is downloading the dataset and training a tokenizer.
+To do that, run the following script:
 
 ```
-./quick_and_dirty_lm.py pretrain
+python3 examples/gpt/train_tokenizer.py
 ```
+
+Once you have a tokenizer, you can start training a foundation model.
+The example trains with a batch size of 1. While this can lead to some
+noisy gradients, it also means that you only need a couple of gigs of VRAM
+to train the model. To do this, run:
+
+```
+python3 examples/gpt/pretrain.py
+```
+
+There are also VS Code files for running this scripts from a GUI-based editor.
+
+Happy hacking!
