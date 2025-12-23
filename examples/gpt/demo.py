@@ -2,7 +2,7 @@ from pathlib import Path
 
 import torch
 
-from quick_and_dirty_lm import (
+from language_model import (
     GPTModel,
     SentencePieceTokenizer,
     Generator

@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+"""
+Contains various functions and classes for training and testing language models.
+"""
+# SPDX-License-Identifier: Apache-2.0.
 
 from abc import ABC, abstractmethod
 from pathlib import Path

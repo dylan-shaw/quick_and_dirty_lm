@@ -5,7 +5,7 @@ This example is for training a foundation model from Gutenberg text.
 from pathlib import Path
 import math
 
-from quick_and_dirty_lm import (
+from language_model import (
     PretrainingDataset,
     Trainer,
     GPTModel

@@ -7,6 +7,9 @@ you to put your own stuff in it. It is not meant to contain every single techniq
 for training the language model, just the basics that can be used as a good starting
 point. In many cases, it is all you really need to make a functioning language model.
 
+All of the reusable code is in the file `./language_model.py`.
+Feel free to use it in this repo or copy + paste it into your project.
+
 ### Getting Started
 
 While you are free to copy the code, and even modify it, in your own repo, it can also
