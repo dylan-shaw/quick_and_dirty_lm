@@ -37,6 +37,13 @@ to train the model. To do this, run:
 python3 examples/gpt/pretrain.py
 ```
 
+To interact with the language model, you can run the demo program.
+A foundation model is not exactly chat-bot material, but it can be insightful to see its responses.
+
+```
+python3 examples/gpt/demo.py
+```
+
 There are also VS Code files for running this scripts from a GUI-based editor.
 
 Happy hacking!
