@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
+from abc import ABC, abstractmethod
 from pathlib import Path
-from tarfile import TarFile, TarInfo
-import math
 from collections import deque
 
 import torch
@@ -53,34 +52,26 @@ class TransformerBlock(nn.Module):
                  dropout: float,
                  qkv_bias: bool):
         super().__init__()
-        self.__norm1 = nn.LayerNorm(in_features)
-        self.__attention = MultiheadAttention(in_features, out_features, heads, dropout, qkv_bias)
-        self.__dropout = nn.Dropout(dropout)
-        self.__norm2 = nn.LayerNorm(out_features)
+        self.__input_norm = nn.LayerNorm(in_features)
+        self.__attention = MultiheadAttention(
+            in_features,
+            out_features,
+            heads,
+            dropout,
+            qkv_bias
+        )
+        self.__output_norm = nn.LayerNorm(out_features)
         self.__linear = nn.Sequential(
-            nn.Linear(out_features, out_features),
-            nn.GELU(),
-            nn.Linear(out_features, out_features)
+            nn.Linear(out_features, out_features * 4),
+            nn.ReLU(),
+            nn.Linear(out_features * 4, out_features)
         )
 
     def forward(self, x: Tensor) -> Tensor:
-        skip = x
-        x = self.__norm1(x)
-        x = self.__attention(x)
-        x = self.__dropout(x)
-
-        if x.shape == skip.shape:
-            # we can only really do this if the number
-            # of input features is the same as the number
-            # of output features.
-            x = x + skip
-
-        skip = x
-        x = self.__norm2(x)
-        x = self.__linear(x)
-        x = self.__dropout(x)
-        x = x + skip
-
+        x = self.__attention(x) + x
+        x = self.__input_norm(x)
+        x = self.__linear(x) + x
+        x = self.__output_norm(x)
         return x
 
 class GPTModel(nn.Module):
@@ -95,13 +86,20 @@ class GPTModel(nn.Module):
         self.__layers = nn.Sequential(*blocks)
         self.__norm = nn.LayerNorm(embedding)
         self.__last = nn.Sequential(
-            nn.Linear(embedding, vocab_size, bias=False)
+            nn.Linear(embedding, vocab_size)
         )
         self.__context_length = context_length
 
     def forward(self, tokens: Tensor) -> Tensor:
+        sequence_length = tokens.size(dim=1)
+        if sequence_length > self.__context_length:
+            # use only the last tokens in the token array,
+            # since our position embeddings only go up to
+            # the max context length
+            tokens = tokens[: -self.__context_length]
+
         token_e = self.__token_embedding(tokens)
-        pos_e = self.__position_embedding(torch.arange(self.__context_length, device=tokens.device))
+        pos_e = self.__position_embedding(torch.arange(sequence_length, device=tokens.device))
         x = token_e + pos_e
         x = self.__layers(x)
         x = self.__norm(x)
@@ -126,7 +124,7 @@ class PretrainingDataset(torch.utils.data.Dataset):
 class Trainer:
     def __init__(self,
                  net: torch.nn.Module,
-                 max_learning_rate: float = 1.0e-3,
+                 max_learning_rate: float = 1.0e-4,
                  optimizer_name: str = 'Adam',
                  steps_per_epoch: int = 1000,
                  num_epochs: int = 100,
@@ -193,3 +191,82 @@ class Trainer:
         targets = y.view(-1)
         loss = F.cross_entropy(logits, targets.long())
         return loss.item()
+
+class Tokenizer(ABC):
+    """
+    This class is for encoding or decoding tokens.
+    There are many ways to do this, so this class may be derived
+    for which ever algorithm or library being used for tokenization.
+    """
+    @abstractmethod
+    def encode(self, text: str) -> list[int]:
+        """
+        Encodes characters as a sequence, represented by a list of integers.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def decode(self, tokens: list[int]) -> str:
+        """
+        Decodes a set of tokens into text.
+        """
+        raise NotImplementedError()
+
+class SentencePieceTokenizer(Tokenizer):
+    """
+    An implementation of the tokenizer class using SentencePiece.
+    <br>
+    <br>
+    *Note: This requires the `sentencepiece` package.*
+    """
+    def __init__(self, model_filename: str):
+        """
+        Creates a SentencePiece tokenizer.
+
+        :param model_filename: The path to the tokenizer model file.
+        """
+        import sentencepiece as sp
+        self.__model = sp.SentencePieceProcessor()
+        self.__model.LoadFromFile(model_filename)
+
+    def encode(self, text: str) -> list[int]:
+        return self.__model.Encode(text, out_type=int)
+
+    def decode(self, tokens: list[int]) -> str:
+        return self.__model.Decode(tokens)
+
+class Generator:
+    """
+    Used for generating text from a model.
+    """
+    def __init__(self,
+                 model: torch.nn.Module,
+                 tokenizer: Tokenizer,
+                 device: torch.device,
+                 sample: bool = True,
+                 top_k: int = 10,
+                 seed: int = 0):
+        self.__model = model
+        self.__tokenizer = tokenizer
+        self.__device = device
+        self.__rng = torch.Generator(device=device)
+        self.__rng.manual_seed(seed)
+        self.__sample = sample
+        self.__top_k = top_k
+
+    def generate(self, text: str, max_tokens: int) -> str:
+        tokens = torch.tensor(self.__tokenizer.encode(text), dtype=torch.long).unsqueeze(dim=0)
+        tokens = tokens.to(self.__device)
+        with torch.no_grad():
+            for _ in range(max_tokens):
+                logits: torch.Tensor = self.__model(tokens)
+                if self.__sample:
+                    probs = F.softmax(logits[:, -1, :], dim=-1)
+                    top_k_probs, top_k_indices = torch.topk(probs, self.__top_k, dim=-1)
+                    next_token = torch.multinomial(top_k_probs, num_samples=1, generator=self.__rng)
+                    next_token = top_k_indices.gather(1, next_token)
+                else:
+                    next_token = logits[:, -1, :].argmax(dim=-1).unsqueeze(dim=0)
+                tokens = torch.concat((tokens, next_token), dim=1)
+        output_text = self.__tokenizer.decode(tokens.flatten().cpu().tolist())
+        return output_text
